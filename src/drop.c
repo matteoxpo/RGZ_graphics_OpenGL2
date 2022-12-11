@@ -13,21 +13,22 @@
 
 #define ANGLE_KF M_PI / 180
 
+#define COLORFULL_NO_LIGHT_POLYGON 'c'
+#define COLORFULL_LIGHT_POLYGON 'l'
+#define TEXTURE_POLYGON 't'
+
 double CAMERA_RADIUS = 15.0;
 double FIGURE_RADIUS = 10.0;
 
 double YZ_ANGLE = M_PI / 100;
 double ZX_ANGLE = M_PI / 100;
 
-float OBJ_X = 0, OBJ_Y = 0, OBJ_Z = 0;
-float LIGHT_X = 0, LIGHT_Y = 0, LIGHT_Z = 0;
-
 void init();
 
 double getSphereX(int B, int L);
 double getSphereY(int B, int L);
-double getSphereZ(int B);
-double displaceZ(double z);
+double getSphereZ(int B, int L);
+double addBiasZ(double z);
 
 void display();
 
@@ -37,6 +38,20 @@ void drawCarcas();
 void drawMeridians();
 void drawParallels();
 
+void drawPolygon(char mode);
+// double* getPolygon(double* res, int B, int L,
+//                    double (*getSphere)(int b, int l));
+
+double* getPolygon(double* res, int B, int L,
+                   double (*getSphere)(int b, int l)) {
+  res[0] = getSphere(B, L);
+  res[1] = getSphere(B + DELTA_B, L);
+  res[2] = getSphere(B + DELTA_B, L + DELTA_L);
+  res[3] = getSphere(B, L + DELTA_L);
+
+  return res;
+}
+
 void OnKeyboard(int key, int x, int y);
 void onReshape(int width, int height) {}
 
@@ -45,7 +60,7 @@ double getXEye();
 double getYEye();
 double getZEye();
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   if (argc > 1)
     FIGURE_RADIUS = atof(argv[2]);
   else
@@ -79,7 +94,11 @@ double getSphereX(int B, int L) {
 double getSphereY(int B, int L) {
   return FIGURE_RADIUS * cos(B * ANGLE_KF) * cos(L * ANGLE_KF);
 }
-double getSphereZ(int B) { return FIGURE_RADIUS * sin(B * ANGLE_KF); }
+double getSphereZ(int B, int L) {
+  double z = FIGURE_RADIUS * sin(B * ANGLE_KF);
+  if (z > FIGURE_RADIUS / 2) z += addBiasZ(z);
+  return z;
+}
 
 void display() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -106,32 +125,52 @@ void drawCarcas() {
   drawParallels();
 }
 
-double displaceZ(double z) {
+double addBiasZ(double z) {
   return 2.5 * FIGURE_RADIUS * (z / FIGURE_RADIUS - 0.5) *
          (z / FIGURE_RADIUS - 0.5);
 }
 
-void drawMeridians() {
-  glBegin(GL_LINE_STRIP);
+void drawPolygon(char mode) {
+  double* x = (double*)malloc(4 * sizeof(double));
+  double* y = (double*)malloc(4 * sizeof(double));
+  double* z = (double*)malloc(4 * sizeof(double));
+  double normal[3];
+
   for (int L = 0; L <= 360; L += DELTA_L) {
     for (int B = -90; B <= 90; B += DELTA_B) {
-      double z = getSphereZ(B) + OBJ_Z;
-      if (z > FIGURE_RADIUS / 2) z += displaceZ(z);
-      glVertex3d(getSphereY(B, L) + OBJ_Y, z, getSphereX(B, L) + OBJ_X);
+      x = getPolygon(x, B, L, getSphereX);
+      y = getPolygon(y, B, L, getSphereY);
+      z = getPolygon(z, B, L, getSphereZ);
+      switch (mode) {
+        case TEXTURE_POLYGON:
+          break;
+        case COLORFULL_LIGHT_POLYGON:
+          break;
+        case COLORFULL_NO_LIGHT_POLYGON:
+          break;
+        default:
+          printf("Ошибка выбора модификации\n");
+          return;
+      }
     }
   }
+  if (x != NULL) free(x);
+  if (y != NULL) free(y);
+  if (z != NULL) free(z);
+}
+
+void drawMeridians() {
+  glBegin(GL_LINE_STRIP);
+  for (int L = 0; L <= 360; L += DELTA_L)
+    for (int B = -90; B <= 90; B += DELTA_B)
+      glVertex3d(getSphereY(B, L), getSphereZ(B, L), getSphereX(B, L));
   glEnd();
 }
 void drawParallels() {
   glBegin(GL_LINE_STRIP);
-  for (int B = -90; B <= 90; B += DELTA_B) {
-    for (int L = 0; L <= 360; L += DELTA_L) {
-      double z = getSphereZ(B) + OBJ_Z;
-      if (z > FIGURE_RADIUS / 2) z += displaceZ(z);
-
-      glVertex3d(getSphereY(B, L) + OBJ_Y, z, getSphereX(B, L) + OBJ_X);
-    }
-  }
+  for (int B = -90; B <= 90; B += DELTA_B)
+    for (int L = 0; L <= 360; L += DELTA_L)
+      glVertex3d(getSphereY(B, L), getSphereZ(B, L), getSphereX(B, L));
   glEnd();
 }
 
@@ -175,8 +214,8 @@ void drawDots() {
 
   for (double B = 0; B < 2 * M_PI; B += M_PI / 100) {
     for (double L = 0; L < 2 * M_PI; L += M_PI / 100) {
-      double x = FIGURE_RADIUS * cos(B) * sin(L) + OBJ_X;
-      double y = FIGURE_RADIUS * cos(B) * cos(L) + OBJ_Y;
+      double x = FIGURE_RADIUS * cos(B) * sin(L);
+      double y = FIGURE_RADIUS * cos(B) * cos(L);
       double z = FIGURE_RADIUS * sin(B);
 
       if (z > FIGURE_RADIUS / 2) {

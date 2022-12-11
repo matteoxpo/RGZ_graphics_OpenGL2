@@ -5,7 +5,7 @@ CFLAGS = -c
 GLFLAGS = -lglut -lGL -lGLU -lm
 
 BUILD_PATH = ../build/
-SOURCES =  drop.c
+SOURCES =  drop.c 
 OBJECTS = $(SOURCES:.c=.o)
 
 EXECUTABLE = MAIN
