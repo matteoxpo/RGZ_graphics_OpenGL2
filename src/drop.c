@@ -12,8 +12,8 @@
 #define DELTA_B 10
 #define DELTA_L 10
 
-#define TEX_STEP_X ((DELTA_B + 0.0) / 180.0)
-#define TEX_STEP_Y ((DELTA_L + 0.0) / 360.0)
+#define TEX_STEP_X ((DELTA_B + 0.0) / 1800.0)
+#define TEX_STEP_Y ((DELTA_L + 0.0) / 3600.0)
 
 #define ANGLE_KF (M_PI / 180)
 
@@ -25,9 +25,7 @@ typedef enum {
   CarcasMode = '1',
   ColorfullCarcasMode = '2',
   ColorfullMode = '3',
-  PerspectiveProjectionMode = '4',
-  AxonometricProjectionMode = '5',
-  TextureMode = '6'
+  TextureMode = '4'
 
 } WorkingMode;
 
@@ -40,6 +38,8 @@ int TEXTURE;
 
 double YZ_ANGLE = M_PI / 100;
 double ZX_ANGLE = M_PI / 100;
+
+float LIGHT_POS[] = {20, 20, 20, 1.0f};
 
 void init();
 
@@ -78,6 +78,8 @@ int main(int argc, char** argv) {
     FIGURE_RADIUS = atof(argv[2]);
   else
     FIGURE_RADIUS = 3;
+  CAMERA_RADIUS = FIGURE_RADIUS * 5;
+
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
   glutInitWindowPosition(50, 10);
@@ -105,15 +107,15 @@ void init() {
   glClearColor(0.0, 0.0, 0.0, 0.0);
   glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-  GLfloat mat_specular[] = {0.0, 0.0, 1.0, 1.0};
+  GLfloat mat_specular[] = {0.0, 0.0, 0.0, 1.0};
   GLfloat mat_shininess[] = {50.0};
 
-  float lpos[] = {20, 20, 20, 1.0f};
+  float light_pos[] = {20, 20, 20, 1.0f};
 
   glShadeModel(GL_SMOOTH);
   glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
   glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
-  glLightfv(GL_LIGHT0, GL_POSITION, lpos);
+  glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
   glColor3f(0.3, 0.5, 0.7);
 
   glLineWidth(3);
@@ -150,16 +152,20 @@ void display() {
     case TextureMode:
       glDisable(GL_LIGHTING);
       glMatrixMode(GL_PROJECTION);
+
       glEnable(GL_TEXTURE_2D);
       glBindTexture(GL_TEXTURE_2D, TEXTURE);
+
       drawPolygon(TEXTURE_POLYGON_TYPE);
+
       glBindTexture(GL_TEXTURE_2D, 0);
       glDisable(GL_TEXTURE_2D);
       glEnable(GL_LIGHTING);
-      break;
-    case PerspectiveProjectionMode:
-      break;
-    case AxonometricProjectionMode:
+
+      glLoadIdentity();
+      glMatrixMode(GL_MODELVIEW);
+      glLoadIdentity();
+
       break;
   }
   glLoadIdentity();
@@ -306,10 +312,11 @@ double getYEye() { return CAMERA_RADIUS * cos(YZ_ANGLE); }
 double getZEye() { return CAMERA_RADIUS * sin(YZ_ANGLE) * cos(ZX_ANGLE); }
 
 void OnKeyBoardSwitchMode(unsigned char key, int x, int y) {
-  if (key == CarcasMode || key == ColorfullCarcasMode ||
-      key == PerspectiveProjectionMode || key == AxonometricProjectionMode ||
-      key == TextureMode || ColorfullMode)
+  if (key == CarcasMode || key == ColorfullCarcasMode || key == TextureMode ||
+      ColorfullMode)
     MODE = key;
+  else
+    MODE = CarcasMode;
 }
 
 void OnKeyboardRotate(int key, int x, int y) {
