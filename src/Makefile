@@ -2,7 +2,7 @@
 
 CC = gcc
 CFLAGS = -c
-GLFLAGS = -lglut -lGL -lGLU -lm
+GLFLAGS = -lglut -lGL -lGLU -lm -lSOIL
 
 BUILD_PATH = ../build/
 SOURCES =  drop.c 
